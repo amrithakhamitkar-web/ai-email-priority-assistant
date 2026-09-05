@@ -1,0 +1,259 @@
+{
+  "name": "AI Email Priority Assistant",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "filters": {}
+      },
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        0,
+        0
+      ],
+      "id": "c7ce96e3-c6fe-443b-8315-3a76b23cdec2",
+      "name": "Gmail Trigger",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "W8tzD0rSqgKvO33h",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4O-MINI"
+        },
+        "responses": {
+          "values": [
+            {
+              "content": "=Analyze this email and classify it into exactly ONE category:\n\nIMPORTANT\nNORMAL\nSPAM\n\nEmail content:\n{{ $json.snippet }}\n\nReply with ONLY the category name. No explanation."
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.3,
+      "position": [
+        224,
+        0
+      ],
+      "id": "5609cfa7-8d9a-49e4-bc06-dc5696706ba1",
+      "name": "Message a model",
+      "credentials": {
+        "openAiApi": {
+          "id": null,
+          "name": "",
+          "__aiGatewayManaged": true
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "19WLSm39XiIrm-pprlhDdakCjKsSIr0mZppHuPlgb5wE",
+          "mode": "list",
+          "cachedResultName": "AI Email Priority Tracker",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/19WLSm39XiIrm-pprlhDdakCjKsSIr0mZppHuPlgb5wE/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/19WLSm39XiIrm-pprlhDdakCjKsSIr0mZppHuPlgb5wE/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Email Snippet": "={{ $('Gmail Trigger').item.json.snippet }}",
+            "Category": "={{ $json.output[0].content[0].text }}",
+            "Subject": "={{ $('Gmail Trigger').item.json.Subject }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Subject",
+              "displayName": "Subject",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Email Snippet",
+              "displayName": "Email Snippet",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Category",
+              "displayName": "Category",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        592,
+        0
+      ],
+      "id": "17cb4f60-e0e5-45e8-8e6b-cafb5e0823a2",
+      "name": "Append row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "wM82FeIOodzb2JvC",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "1b79bb62-aec2-4f29-8a26-f19e8a4eeee5",
+              "leftValue": "={{ $('Message a model').item.json.output[0].content[0].text }}",
+              "rightValue": "IMPORTANT",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        816,
+        0
+      ],
+      "id": "a39298f9-c8a6-4f6f-a57a-1ba5714ac9af",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "sendTo": "amrithakhamitkar@gmail.com",
+        "subject": "IMPORTANT EMAIL ALERT",
+        "message": "=An important email was detected!\nSubject :{{ $json.Subject }}\nEmail: {{ $json['Email Snippet'] }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1040,
+        -96
+      ],
+      "id": "d1f0b3c5-db04-4294-96b1-d2c4bbc24096",
+      "name": "Send a message",
+      "webhookId": "054f6de6-6e78-484d-8e2a-6862bbbeb4c5",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "W8tzD0rSqgKvO33h",
+          "name": "Gmail account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Gmail Trigger": {
+      "main": [
+        [
+          {
+            "node": "Message a model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message a model": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append row in sheet": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "a8436761-67ac-4dd7-9a3d-e81ca204a34a",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "0986a8d42636f3d9bd3c91d0b1ad07a88f7751621c00302fe0a9f6e93333d810"
+  },
+  "nodeGroups": [],
+  "id": "XN3EIxshEqhibs3T",
+  "tags": []
+}
